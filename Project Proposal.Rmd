@@ -1,0 +1,763 @@
+---
+title: "Project proposal"
+author: "Team I -Daniel Kuznetsov 318856648 - Lior Nisimov 325026821"
+output:
+  pdf_document:
+    latex_engine: xelatex
+---
+
+```{r load-packages, message = FALSE}
+install.packages('caTools')
+install.packages("tidymodels")
+install_github("Ironholds/WikipediR")
+library(knitr)
+library(tidyverse)
+library(broom)
+library(htmltools)
+library(caTools)
+library(rvest)
+library(stringr)
+library(readr)
+library(devtools)
+library(WikipediR)
+library(dtplyr)
+library(tidymodels)
+
+```
+
+
+```{r setup, include = FALSE}
+opts_chunk$set(echo=TRUE) # hide source code in the document
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      # record the current time before each chunk
+      now <<- Sys.time()
+    } else {
+      # calculate the time difference after a chunk
+      res <- difftime(Sys.time(), now)
+      # return a character string to show the time
+      paste("Time for this code chunk to run:", res)
+    }
+  }
+}))
+```
+
+## 1. Introduction
+
+The research question: Is there a distinct difference between scientific search results in different languages in different countries?
+The general problem area that this analysis contributes to is the online scientific education field.
+We are trying to find a correlation between location & language to quality information.
+
+This is an important topic because the general belief is that the internet made it easier for people to get quality information with a few clicks. But this is not necessarily the case. 
+
+We believe that this topic is a bit harder to explore because it requires us to come up with a method of evaluating a good search result page and a bad one, which will require us to understand the on-site user behavior to understand which widgets are the most important when it comes to getting quality information.
+
+We think this was not done before because the difference between search results in different languages and countries is a bit harder to spot in some cases, or because it was not taken as a serious issue.
+
+Our approach is to understand what makes a good search page first, prioritizing every element in the search pages to better understand how to rank the search page as a combination of these elements. This might require us to learn basic UX design rules (since Google builds its pages by these rules) to further understand the priorities.
+Then we will need to create a total grade for each page that will estimate its ability to provide quality information for the seeker.
+
+## 2. Data
+
+Our data is in the form of 124 html files, with 31 scientific terms across 4 languages.
+We found 20 important categories which are different between each language for every term. In essence, they are the building blocks of the page (widgets, videos, suggested search queries, etc.) that help us to rank the ease and clarity of the information exploration.
+
+## 3. Preliminary results
+
+As we can see there are a lot more search results in English than any other language by far.
+The Hebrew search result count is at the second place, and the Arabic and Russian are 3rd and 4th respectively.
+Of course now we can ask our-self, is the amount of results correlates with better data? i would argue that the correlation inst that clear and can even have negitive effects
+on the quality of data for reasons like fake news and more trash data uploaded by people.
+
+Furthermore, the number of searches with Wikipedia link at the top is lead by the Hebrew language, followed by, Arabic, Russian, and English at last. which we need to investigate further the quality of data in the Wikipedia pages. if the data in Wikipedia pages proves itself as quality data we could argue that Wikipedia as the top search results for scientific terms maybe
+a major factor.
+
+Lastly, We can see that the number of images per search result is pretty much similar across all languages, with English and Russian being the ones with the most by a slide. therefore from this simple analysis we can determine with certainty that Google algorithms works fine and provides pictures for scientific terms and its not going to be a factor in our data quality analysis.
+
+therefore from this simple graphs at the end of the pdf doc we can gather a lot of information on where to proceeded from here and what categories could determine quality data.
+from here it would be a good idea to keep analyzing differences between languages when it comes to goggling scientific terms and after gathering this points maybe gather a group of people to tag the quality of the data provided, while trying as much not to introduce bias's ( bias's like one person rating all all the data, translating arabic using google translate and etc...)
+
+After figuring the above questions we could proceed to deploy Regression models to see which features effects the data quality the most and after rating the data deploying classification models. further down the road we could deploy NLP models on the pages to try and recognize difficulties people may have interpreting the data which may effect the quality which is beyond my understanding as of now. 
+
+
+## 4. Data analysis plan
+
+
+We will use the predictor variables to see if there is a distinct difference between the quality of the information in different languages/ countries.
+
+Our comparison groups are the different search page results in 4 languages (English, Hebrew, Russian, and Arabic) for the 70 scientific search terms.
+
+We believe that the most effective method that will be useful is to come up with a way of objectively rating the search page based on the widgets and results displayed on it. That way, we could better identify correlations and common properties among pages across languages and countries.
+
+We are hoping to find a statistical distinct difference between the average scores of the pages across the 4 languages.
+
+A lot of the work plan was provided in section 3. Preliminary results as this work plans builds on the foundation of the results we gatherd so far
+
+Of course a lot of data scraping and cleaning will be deployed as we can already see in the source code. we will try to automate this process as much as possible to provide the option for scaling this project further down the road because of the endless features for determining quality data and options to figure out which features has major impacts. Also as we learn more machine learning models down the road we could scale this project using this methods.
+
+Teamwork: 
+Daniel - Translate the Russian search results, data visualization, and data cleaning & manipulation.
+Lior - Data scraping, rating model building, learning about the UX elements, and coming up with creative ways of modeling the relations between the pages.
+We will still help each other out and may do more than that because we are still a team, and we aspire to split the workload 50-50.
+
+## Appendix
+
+### Data README
+
+```{r include_data_readme, comment=''}
+cat(readLines('C:/Users/margo/Documents/Final Project advenced programming/README.md'), sep = '\n')
+```
+
+### Source code
+
+```{r}
+tempdir()
+dir.create(tempdir())
+components = 0
+
+
+# Reading the files from the HTML files from the folder
+
+path = "C:/Users/margo/Documents/Final Project advenced programming/searching_for_science"
+rawHTML <- function(html) read_html(html) 
+filestoread <- list.files(path = path, pattern="\\.html$")
+```
+
+
+```{r}
+#Function to open the HTML files
+openHTML <- function(x) browseURL(paste0('file://', file.path(getwd(), x)))
+```
+
+```{r}
+#Function to detect if the page is a wikipedia page
+wiki_detect <- function(lang,string) {
+  if(str_detect(lang,"ru")){
+    if(str_detect(string,"Википедия")){
+      return(1)
+    }
+    else{
+      return(0)
+    }
+  }
+  else if(str_detect(lang,"hw")){
+    if(str_detect(string,"ויקיפדיה")){
+      return(1)
+    }
+    else{
+      return(0)
+    }
+  }
+  else if(str_detect(lang,"ar")){
+    if(str_detect(string,"ويكيبيديا")){
+      return(1)
+    }
+    else{
+      return(0)
+    }
+  }
+  else if(str_detect(lang,"en")){
+    if(str_detect(string,"Wikipedia")){
+      return(1)
+    }
+    else{
+      return(0)
+    }
+  }
+  return(0)
+}
+```
+
+
+```{r}
+
+# This chunk revolves around tidying and normalizing the data, because knitting is not possible while the files contains Hebrew or Russian or Arabic letters I've made this chuck to normalize the data while still maintaining the original data about the name and path.
+
+# All files should be from the type: [int]_[name of the term in the original language]_[language shortcut(en,hw, etc...)]_[Country shortcut(US,IL,RU, etc...)]
+
+#All
+num_files <- length(list.files("C:/Users/margo/Documents/Final Project advenced programming/searching_for_science/"))
+if (file.exists("C:/Users/margo/Documents/Final Project advenced programming/searching_for_science/6_Экосистема_ru_RU.html"))
+{
+  # Data frame to maintain the original files names while changing it to normalized English format
+  df <- data.frame(matrix(ncol = 3, nrow = 0))
+  colnames(df) <- c("termid","original_name","lang")
+  
+  # filling the data frame and changing names to temp name
+  for (val in 1:num_files){
+    path <- paste0('C:/Users/margo/Documents/Final Project advenced programming/searching_for_science/', filestoread[val])
+    termid <- unlist(strsplit(path, split = "_"))[3]
+    termid <- unlist(strsplit(termid, split = "/"))[2]
+    term <- unlist(strsplit(path, split = "_"))[4]
+    lang <- unlist(strsplit(path, "_"))[5]
+    row <- c(termid, term,lang)
+    df[nrow(df) + 1,] <- row
+    file.rename(path,str_replace_all(path,term,"k"))
+    Sys.sleep(0.1)
+  }
+  df$termid <- as.numeric(as.character(df$termid))
+  
+  #Normalizing name to : [int]_[name of the term in the English language]_[language shortcut(en,hw, etc...)]_[Country shortcut(US,IL,RU, etc...)]
+  path = "C:/Users/margo/Documents/Final Project advenced programming/searching_for_science"
+  filestoread <- list.files(path = path, pattern="\\.html$")
+  for (val in 1:num_files){
+    path <- paste0('C:/Users/margo/Documents/Final Project advenced programming/searching_for_science/', filestoread[val])
+    path
+    termid <- unlist(strsplit(path, split = "_"))[3]
+    termid <- unlist(strsplit(termid, split = "/"))[2]
+    term <- unlist(strsplit(path, split = "_"))[4]
+    lang <- unlist(strsplit(path, "_"))[5]
+    file.rename(path,str_replace_all(path,"k",as.character(df$original_name[df$lang == "en" & df$termid == termid])))
+    Sys.sleep(0.1)
+    }
+  path = "C:/Users/margo/Documents/Final Project advenced programming/searching_for_science"
+  filestoread <- list.files(path = path, pattern="\\.html$")
+  filestoread  
+  original_names_df <- as_tibble(df)
+  write.csv(original_names_df, "original_names_df.csv")
+
+}else{
+    original_names_df<- read_csv("C:/Users/margo/Documents/Final Project advenced programming/original_names_df.csv",show_col_types = FALSE)
+    original_names_df$termid <- as.numeric(as.character(original_names_df$termid))
+    original_names_df <- as_tibble(original_names_df)
+    original_names_df <- original_names_df %>% select(-1)
+}
+
+```
+
+```{r}
+if (file.exists("C:/Users/margo/Documents/Final Project advenced programming/basic_features_df.csv"))
+{
+  basic_features_df <- read_csv("C:/Users/margo/Documents/Final Project advenced programming/basic_features_df.csv",show_col_types = FALSE)
+  basic_features_df$results[is.na(basic_features_df$results)] <- "0"
+  basic_features_df$time[is.na(basic_features_df$time)] <- 0
+  basic_features_df$results <- as.numeric(as.character(basic_features_df$results))
+  basic_features_df$termid <- as.numeric(as.character(basic_features_df$termid))
+  basic_features_df$google_widget <- as.integer(as.logical(basic_features_df$google_widget))
+  basic_features_df$wiki_top <- as.integer(as.logical(basic_features_df$wiki_top))
+  basic_features_df$map_widget <- as.integer(as.logical(basic_features_df$map_widget))
+  basic_features_df$video_count <- as.numeric(as.character(basic_features_df$video_count))
+  basic_features_df$recipe <- as.integer(as.logical(basic_features_df$recipe))
+  basic_features_df$people_ask_count <- as.numeric(as.character(basic_features_df$people_ask_count))
+  basic_features_df$dict <- as.integer(as.logical(basic_features_df$dict))
+  basic_features_df$top_stories_count <- as.numeric(as.character(basic_features_df$top_stories_count))
+  basic_features_df$page_score <- as.numeric(as.character(basic_features_df$page_score))
+  basic_features_df <- as_tibble(basic_features_df)
+  basic_features_df <- basic_features_df %>% select(-1)
+}else{
+  scarping_df <- data.frame(matrix(ncol = 17, nrow = 0))
+  colnames(scarping_df) <- c("termid","term", "results", "time", "lang","top","wiki_top","google_widget","map_widget","videos","video_count","recipe","people_ask","people_ask_count","dict","top_stories","top_stories_count")
+  
+  #Scraping the data from the HTML files
+  
+  for (val in 1:num_files)
+  {
+  # Scraping the number or results and the search elapsed time for the term as shown by google
+  path <- paste0('C:/Users/margo/Documents/Final Project advenced programming/searching_for_science/', filestoread[val])
+  simple <- rawHTML(path)
+  simple <- simple %>%
+   html_nodes(".LHJvCe")%>%
+    html_text()%>%
+      str_remove_all("\n")%>%
+        str_squish()%>%
+          str_match_all("[0123456789(.)]")%>%
+            paste(collapse = " ")%>%
+              toString()%>%
+                str_remove_all("c")%>%
+                  str_remove_all(",")%>%
+                    str_remove_all('"')%>%
+                      str_remove_all("[)]")%>%
+                        str_remove("[(]")%>%
+                          str_remove_all(" ")
+  
+  # Scarping the first result (The result at the top of the page)
+  top_search <- rawHTML(path)
+  top_search <- top_search %>%
+                  html_nodes(".DKV0Md")%>%
+                    html_text()
+  
+  # Scraping the data about Google recommended pictures, if Google recommends any pictures it will amount as True/1 (When Google provides pictures it will always provide same amount)
+  google_widget <- rawHTML(path)
+  google_widget <- google_widget %>%
+   html_node(".fWhgmd")%>%
+    html_text2()
+  
+  # Scraping the data about Google recommended search, not used yet
+  
+  google_recommandations <- rawHTML(path)
+  google_recommandations <- google_recommandations %>%
+   html_node(".q8U8x")%>%
+    html_text2()
+  #Parsing the map widget
+
+  map_widget <- rawHTML(path)
+  map_widget <- map_widget %>%
+                  html_nodes(".kqmHwe")%>%
+                    html_text()
+  map_widget <- length(map_widget)
+  if (map_widget == 0){
+    map = 0
+  }else{
+    map = 1
+  }
+  
+  #parsing the video widget
+  video_widget <- rawHTML(path)
+  video_widget <- video_widget %>%
+                    html_nodes(".WZIVy")%>%
+                      html_text()
+  if (length(video_widget) == 0){
+    video_widget_exist = 0
+  }else{
+    video_widget_exist = 1
+  }
+  
+  #parsing the recipe widget
+  recipe_widget <- rawHTML(path)
+  recipe_widget <- recipe_widget %>%
+                      html_nodes(".s9lrV")%>%
+                        html_text()
+  recipe_widget <- length(recipe_widget)
+  if (recipe_widget == 0){
+    recipe = 0
+  }else{
+    recipe = 1
+  }
+  
+  #parsing the people also ask 
+  people_ask_widget <- rawHTML(path)
+  people_ask_widget <- people_ask_widget %>%
+                  html_nodes(".Wt5Tfe")%>%
+                    html_text()
+  people_ask_widget <- str_split(people_ask_widget,"[?]")
+  if (length(people_ask_widget) > 0 ){
+  people_ask_widget <- people_ask_widget[[1]]
+  people_ask <- list()
+  people_ask_exist = 1
+  for (i in 1:length(people_ask_widget)-1){
+    if (i%%2==1){
+      people_ask <- append(people_ask,people_ask_widget[[i]])}
+  }}
+  else{
+    people_ask <- list()
+    people_ask_exist = 0
+  }
+  
+  #parsing google dict 
+  dict_widget <- rawHTML(path)
+  dict_widget <- dict_widget %>%
+                    html_nodes(".thODed")%>%
+                      html_text()
+  dict_widget <- length(dict_widget)
+  if (dict_widget == 0){
+    dict = 0
+  }else{
+    dict = 1
+  }
+  
+  #parsing top_stories
+  
+  top_stories_widget <- rawHTML(path)
+  top_stories_widget <- top_stories_widget %>%
+                          html_nodes(".aUSklf")%>%
+                            html_text()
+  top_stories_widget <- str_split(top_stories_widget,", \r\n")
+  if (length(top_stories_widget) > 0 ){
+    top_stories_widget <- top_stories_widget[[1]]
+    top_stories_exist = 1
+  }else{
+    top_stories_widget <- list()
+    top_stories_exist = 0
+  }
+  
+  # Creating the data frame containing the id, term in enlsigh, language of the original search, time for search, amount of results, if wikipedia is top page and if google recommends any pictures
+  
+  termid <- unlist(strsplit(path, split = "_"))[3]
+  termid <- unlist(strsplit(termid, split = "/"))[2]
+  term <- unlist(strsplit(path, split = "_"))[4]
+  lang <- unlist(strsplit(path, "_"))[5]
+  res <- as.numeric(unlist(str_split_fixed(simple, "[(]", 2))[1])
+  time <- unlist(str_split_fixed(simple, "[(]", 2))[2]
+  top <- top_search[1]
+  google_widget <- !is.na(google_widget)
+  wikitop <- wiki_detect(lang,top)
+  row <- c(termid, term, res, time, lang,top,wikitop,google_widget,map,toString(video_widget),video_widget_exist,recipe,toString(people_ask),people_ask_exist,   dict,toString(top_stories_widget),length(top_stories_widget))
+  scarping_df[nrow(scarping_df) + 1,] <- row
+  }
+  
+  # Normalizing DF and creating tibble from it for better printing abilities as learned in class
+  scarping_df$results[is.na(scarping_df$results)] <- "0"
+  scarping_df$time[is.na(scarping_df$time)] <- 0
+  basic_features_df$results <- as.numeric(as.character(basic_features_df$results))
+  basic_features_df$termid <- as.numeric(as.character(basic_features_df$termid))
+  basic_features_df$google_widget <- as.integer(as.logical(basic_features_df$google_widget))
+  basic_features_df$wiki_top <- as.integer(as.logical(basic_features_df$wiki_top))
+  basic_features_df$map_widget <- as.integer(as.logical(basic_features_df$map_widget))
+  basic_features_df$video_count <- as.numeric(as.character(basic_features_df$video_count))
+  basic_features_df$recipe <- as.integer(as.logical(basic_features_df$recipe))
+  basic_features_df$people_ask_count <- as.numeric(as.character(basic_features_df$people_ask_count))
+  basic_features_df$dict <- as.integer(as.logical(basic_features_df$dict))
+  basic_features_df$top_stories_count <- as.numeric(as.character(basic_features_df$top_stories_count))
+  basic_features_df$page_score <- as.numeric(as.character(basic_features_df$page_score))
+  # Joining the tables to get the original names of the term for later usage
+  basic_features_df <- basic_features_df %>%
+              left_join(original_names_df,by = c("termid", "lang"))
+
+  basic_features_df
+  write.csv(basic_features_df,"basic_features_df.csv")
+}
+```
+
+```{r}
+raw_data_df <- basic_features_df
+basic_features_df <- basic_features_df %>% select(-c(videos, people_ask, top_stories))
+glimpse(basic_features_df)
+```
+
+```{r}
+plot_tb <-basic_features_df %>%
+            drop_na("results","lang")%>% 
+              select("results","time","lang")%>%
+                group_by(lang)%>%
+                  summarise(
+                  all_results = sum(results),
+                  min_Results = min(results),
+                  mean_Results = mean(results),
+                  median_Results = median(results),
+                  max_Results = max(results)
+                  )
+plot_tb
+p <-ggplot(data=plot_tb, aes(x=lang, y=all_results, fill=lang)) +
+  geom_bar(stat="identity")+
+        labs(title = "Number of results per language")+
+        xlab("Language")+
+        ylab("Results count")
+plot_tb
+p
+```
+
+
+```{r}
+plot_tb_wiki <-basic_features_df %>%
+            drop_na("results","lang")%>% 
+              select("lang","wiki_top")%>%
+                group_by(lang)%>%
+                  summarise(
+                  all_wiki_as_top = sum(wiki_top)
+                  )
+p <-ggplot(data=plot_tb_wiki, aes(x=lang, y=all_wiki_as_top, fill=lang)) +
+  geom_bar(stat="identity") +
+        labs(title = "Wikipedia as top search result (First search result)",
+        subtitle="in the 4 languages")+
+        xlab("Language") +
+        ylab("Top Wiki count")
+p
+
+# I've uploaded a correct PNG because the plot isn't working correctly
+img <- magick::image_read('C:/Users/margo/Downloads/000032.png')
+plot(img)
+```
+
+
+
+```{r}
+plot_tb_googlepic <-basic_features_df %>%
+            drop_na("results","lang")%>% 
+              select("lang","google_widget")%>%
+                group_by(lang)%>%
+                  summarise(
+                  amount_of_google_pics = sum(google_widget)
+                  )
+p <-ggplot(data=plot_tb_googlepic, aes(x=lang, y=amount_of_google_pics, fill=lang)) +
+  geom_bar(stat="identity") +
+        labs(title = "google_widget (True/False) per search language") +
+        xlab("Language") +
+        ylab("recommendations count")
+plot_tb_googlepic
+p
+```
+
+
+```{r}
+if (components == 1){
+Search_meta_data = read.csv("C:/Users/margo/Documents/Final Project advenced programming/components/search_metadata_allhmay.csv")
+ads_meta_data = read.csv("C:/Users/margo/Documents/Final Project advenced programming/components/ads_allhmay.csv")
+also_search_for_meta_data = read.csv("C:/Users/margo/Documents/Final Project advenced programming/components/inline_people_also_search_for_allhmay.csv")
+top_stories_meta_data = read.csv("C:/Users/margo/Documents/Final Project advenced programming/components/top_stories_allhmay.csv")
+top_stories_link_meta_data = read.csv("C:/Users/margo/Documents/Final Project advenced programming/components/top_stories_link_allhmay.csv")
+
+basic_features_df <- basic_features_df %>%
+              left_join(Search_meta_data,by = c("termid", "lang"))%>%
+              left_join(ads_meta_data,by = c("termid", "lang"))%>%
+              left_join(also_search_for_meta_data,by = c("termid", "lang"))%>%
+              left_join(top_stories_meta_data,by = c("termid", "lang"))%>%
+              left_join(top_stories_link_meta_data,by = c("termid", "lang"))
+write.csv(basic_features_df, "components_join.csv")
+}
+```
+
+```{r}
+if (file.exists("C:/Users/margo/Documents/Final Project advenced programming/links_scrape_df.csv"))
+{
+  links_scrape_df <- read_csv("C:/Users/margo/Documents/Final Project advenced programming/links_scrape_df.csv",show_col_types = FALSE)
+  links_scrape_df <- links_scrape_df %>% select(-1)
+  links_scrape_df$termid <- as.numeric(as.character(links_scrape_df$termid))
+  links_scrape_df <- as_tibble(links_scrape_df)
+}else{
+links_scrape_df <- data.frame(matrix(ncol = 4, nrow = 0))
+colnames(links_scrape_df) <- c("termid","lang","first_page_links","wiki_first_link")
+for (val in 1:num_files){
+path <- paste0('C:/Users/margo/Documents/Final Project advenced programming/searching_for_science/', filestoread[val])
+urls <- rawHTML(path)
+links <- urls %>% html_nodes("a") %>% html_attr("href")%>% str_subset("https://")
+link_list <- list()
+wiki = 0
+for (i in links){
+  if (str_detect(i,"google")){
+    next
+  }
+  else{
+    link_list <- append(link_list, i)
+    if (str_detect(i,"wikipedia") & wiki == 0){
+      wiki_first_link <- i
+      wiki = 1
+    }
+  }
+}
+termid <- unlist(strsplit(path, split = "_"))[3]
+termid <- unlist(strsplit(termid, split = "/"))[2]
+lang <- unlist(strsplit(path, "_"))[5]
+row <- c(termid, lang, toString(link_list), wiki_first_link)
+links_scrape_df[nrow(links_scrape_df) + 1,] <- row
+}
+links_scrape_df$termid <- as.numeric(as.character(links_scrape_df$termid))
+links_scrape_df <- as_tibble(links_scrape_df)
+}
+write.csv(links_scrape_df,"links_scrape_df.csv")
+```
+
+
+```{r}
+basic_features_links_df <- basic_features_df %>%
+              left_join(links_scrape_df,by = c("termid", "lang"))
+```
+
+
+
+```{r}
+# Change to 1 if you want to scrape Wikipedia all over, will run anyway if file dosen't exist. default should be 0
+run_wiki_scrape = 0
+if (file.exists("C:/Users/margo/Documents/Final Project advenced programming/wiki_scrape_df.csv") & run_wiki_scrape==0)
+{
+  wiki_scrape_df <- read_csv("C:/Users/margo/Documents/Final Project advenced programming/wiki_scrape_df.csv",show_col_types = FALSE)
+  wiki_scrape_df <- wiki_scrape_df %>% select(-1)
+  wiki_scrape_df$termid <- as.numeric(as.character(wiki_scrape_df$termid))
+  wiki_scrape_df$num_contents <- as.numeric(wiki_scrape_df$num_contents)
+  wiki_scrape_df <- as_tibble(wiki_scrape_df)
+}else{
+wiki_scrape_df <- data.frame(matrix(ncol = 5, nrow = 0))
+colnames(wiki_scrape_df) <- c("termid","lang","num_contents","num_pics","num_references")
+last_term = 0
+for (i in basic_features_links_df$termid) {
+  if (i==last_term){
+    next
+  }
+  for (j in c("en","ar","ru","hw")){
+    wiki_link <- basic_features_links_df %>% filter(termid == i & lang==j) %>% select(wiki_first_link)
+    contents <- read_html(wiki_link[[1]])
+    contents <- contents %>%
+                html_nodes(".mw-headline")%>%
+                  html_text()
+    pic_amount <- read_html(wiki_link[[1]])
+    pic_amount <- pic_amount %>%
+                html_nodes(".thumbinner")
+    num_references <- read_html(wiki_link[[1]])
+    num_references <- num_references %>%
+                    html_nodes(".cs1") %>%
+                      html_text()
+    
+    termid <- i
+    lang <- j
+    row <- c(termid, lang, length(contents),length(pic_amount),length(num_references))
+    wiki_scrape_df[nrow(wiki_scrape_df) + 1,] <- row
+    Sys.sleep(2)
+  }
+  last_term = i
+  Sys.sleep(2)
+}
+wiki_scrape_df$termid <- as.numeric(as.character(wiki_scrape_df$termid))
+wiki_scrape_df$num_contents <- as.numeric(wiki_scrape_df$num_contents)
+wiki_scrape_df$num_pics <- as.numeric(wiki_scrape_df$num_pics)
+wiki_scrape_df$num_references <- as.numeric(wiki_scrape_df$num_references)
+wiki_scrape_df <- as_tibble(wiki_scrape_df)
+write.csv(wiki_scrape_df,"wiki_scrape_df.csv")
+}   
+```
+
+```{r}
+wiki_contents_df <- basic_features_links_df %>%
+              left_join(wiki_scrape_df,by = c("termid", "lang"))
+```
+
+```{r}
+wiki_contents <- wiki_contents_df %>%
+            drop_na("results","lang")%>% 
+                group_by(lang)%>%
+                  summarise(
+                  contents_per_lang = sum(num_contents),
+                  pic_per_lang = sum(num_pics),
+                  ref_per_lang = sum(num_references),
+                  top_stories_per_lang = sum(top_stories_count),
+                  people_ask_count_per_lang = sum(people_ask_count),
+                  dict_count_per_lang = sum(dict),
+                  google_widget_per_lang = sum(google_widget)
+                  )
+wiki_contents
+p <-ggplot(data=wiki_contents, aes(x=lang, y=contents_per_lang, fill=lang)) +
+  geom_bar(stat="identity")
+g <-ggplot(data=wiki_contents, aes(x=lang, y=pic_per_lang, fill=lang)) +
+  geom_bar(stat="identity")
+l <-ggplot(data=wiki_contents, aes(x=lang, y=ref_per_lang, fill=lang)) +
+  geom_bar(stat="identity")
+f <-ggplot(data=wiki_contents, aes(x=lang, y=top_stories_per_lang, fill=lang)) +
+  geom_bar(stat="identity")
+m <-ggplot(data=wiki_contents, aes(x=lang, y=people_ask_count_per_lang, fill=lang)) +
+  geom_bar(stat="identity")
+k <-ggplot(data=wiki_contents, aes(x=lang, y=dict_count_per_lang, fill=lang)) +
+  geom_bar(stat="identity")
+t <-ggplot(data=wiki_contents, aes(x=lang, y=google_widget, fill=lang)) +
+  geom_bar(stat="identity")
+
+p
+l
+g
+f
+m
+k
+
+```
+
+```{r}
+terms <- c("Mammal", "Fungus", "Solution", "Atom", "Energy", "Weight", "Solar System", "Evolution", "Polymerase chain reaction", "Messenger RNA", "Genome", "Mars", "Asteroid", "CRISPR", "Self-driving car", "Protein folding", "Black hole", "Environment", "Mutation", "Malnutrition", "Food security", "Calorie", "Renewable energy", "Climate change", "Ecosystem", "Soil contamination", "Greenhouse gas", "Infection", "Flood", "Drought", "Pollution")
+lang <- c("en", "ar", "ru", "he")
+
+links <- data.frame(Term = character(), Language = character(), Link = character())
+for (t in terms){
+  for (l in lang){
+    all_pi <- page_info(l, "wikipedia", page = t,clean_response = TRUE)
+    row <- c(t, l, all_pi[[1]]$fullurl)
+    links[nrow(links) + 1,] <- row
+  }
+}
+```
+
+```{r}
+df <- data.frame(Term=character(), Language=character(), Backlinks=integer(), Interlinks=integer())
+
+for (t in terms){
+  for (l in lang){
+
+    all_bls <- page_backlinks(language = l,"wikipedia", page = t, clean_response = TRUE, limit = 1000)
+    all_pls <- page_links(language = l,"wikipedia", page = t, clean_response = TRUE, limit = 1000)
+    row <- c(t, l, length(all_bls), (length(unlist(all_pls))-3)/2)
+    df[nrow(df) + 1,] <- row
+  }
+}
+```
+
+```{r}
+df$Backlinks <- as.numeric(df$Backlinks)
+df$Interlinks <- as.numeric(df$Interlinks)
+
+tib <- df %>%
+        group_by(Language)%>%
+        summarise(avg_bl = mean(Backlinks, na.rm = TRUE), avg_il = mean(Interlinks, na.rm = TRUE))
+tib
+
+p1 <- ggplot(tib) +
+  geom_bar(aes(x=Language,y=avg_bl),
+           stat = "identity", position = "stack") +
+  labs(
+    title = "Average backlinks per language",
+    caption = "WikipediR api"
+  )+
+  xlab("Language")+
+  ylab("AVG backlinks")
+p1
+
+p2 <- ggplot(tib) +
+        geom_bar(aes(x=Language,y=avg_il),
+                 stat = "identity", position = "stack") +
+        labs(
+                title = "Average interlinks per language",
+                caption = "WikipediR api"
+        )+
+        xlab("Language")+
+        ylab("AVG interlinks")
+p2
+```
+
+
+```{r}
+glimpse(wiki_contents_df)
+```
+
+
+```{r}
+names <- c(5)
+wiki_contents_df[,names] <- lapply(wiki_contents_df[,names] , factor)
+glimpse(wiki_contents_df)
+```
+
+```{r}
+
+wiki_contents_df_before_reg <- wiki_contents_df
+wiki_contents_df <- wiki_contents_df %>% select(-c(term,top,original_name,first_page_links,wiki_first_link,termid,recipe))
+glimpse(wiki_contents_df)
+```
+
+```{r}
+install.packages("glmnet", repos = "https://cran.us.r-project.org")
+library(glmnet)
+
+```
+
+```{r}
+
+spl = sample.split(wiki_contents_df$lang, SplitRatio = 0.7)
+train = subset(wiki_contents_df, spl==TRUE)
+test = subset(wiki_contents_df, spl==FALSE)
+
+print(dim(train)); print(dim(test))
+```
+```{r}
+glimpse(wiki_contents_df)
+```
+
+
+```{r}
+set.seed(30)
+model_lm <- linear_reg() %>%
+    set_engine("lm") %>%
+        fit(page_score ~ . - results - time - lang - video_count - num_references , data = train)
+tidy(model_lm)
+glance(model_lm)$r.squared
+predict(model_lm, test)
+
+# while an R-square as low as 10% is generally accepted for studies in the field of arts, humanities and social sciences because human behavior cannot be accurately predicted, therefore, a low R-square is often not a problem in studies in the arts, humanities and social science field. However, that should not be an excuse for not improving the R-square value if it can be improved
+```
+```{r}
+glance(model_lm)$r.squared
+```
+
+```{r}
+test
+```
+
+```{r}
+model_glm = glm(lang ~ . - dict - google_widget - video_count - page_score - num_contents - map_widget , family="binomial", data = train)
+summary(model_glm)
+```
+
