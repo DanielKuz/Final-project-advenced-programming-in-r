@@ -9,7 +9,6 @@ output:
 ```{r load-packages, message = FALSE}
 install.packages('caTools')
 install.packages("tidymodels")
-install_github("Ironholds/WikipediR")
 library(knitr)
 library(tidyverse)
 library(broom)
@@ -19,7 +18,6 @@ library(rvest)
 library(stringr)
 library(readr)
 library(devtools)
-library(WikipediR)
 library(dtplyr)
 library(tidymodels)
 
@@ -390,8 +388,6 @@ p <-ggplot(data=plot_tb_wiki, aes(x=lang, y=all_wiki_as_top, fill=lang)) +
 p
 
 # I've uploaded a correct PNG because the plot isn't working correctly
-img <- magick::image_read('C:/Users/margo/Downloads/000032.png')
-plot(img)
 ```
 
 
@@ -574,65 +570,58 @@ k
 ```
 
 ```{r}
-terms <- c("Mammal", "Fungus", "Solution", "Atom", "Energy", "Weight", "Solar System", "Evolution", "Polymerase chain reaction", "Messenger RNA", "Genome", "Mars", "Asteroid", "CRISPR", "Self-driving car", "Protein folding", "Black hole", "Environment", "Mutation", "Malnutrition", "Food security", "Calorie", "Renewable energy", "Climate change", "Ecosystem", "Soil contamination", "Greenhouse gas", "Infection", "Flood", "Drought", "Pollution")
-lang <- c("en", "ar", "ru", "he")
-
-links <- data.frame(Term = character(), Language = character(), Link = character())
-for (t in terms){
-  for (l in lang){
-    all_pi <- page_info(l, "wikipedia", page = t,clean_response = TRUE)
-    row <- c(t, l, all_pi[[1]]$fullurl)
-    links[nrow(links) + 1,] <- row
-  }
-}
+# terms <- c("Mammal", "Fungus", "Solution", "Atom", "Energy", "Weight", "Solar System", "Evolution", "Polymerase chain reaction", "Messenger RNA", "Genome", "Mars", "Asteroid", "CRISPR", "Self-driving car", "Protein folding", "Black hole", "Environment", "Mutation", "Malnutrition", "Food security", "Calorie", "Renewable energy", "Climate change", "Ecosystem", "Soil contamination", "Greenhouse gas", "Infection", "Flood", "Drought", "Pollution")
+# lang <- c("en", "ar", "ru", "he")
+# 
+# links <- data.frame(Term = character(), Language = character(), Link = character())
+# for (t in terms){
+#   for (l in lang){
+#     all_pi <- page_info(l, "wikipedia", page = t,clean_response = TRUE)
+#     row <- c(t, l, all_pi[[1]]$fullurl)
+#     links[nrow(links) + 1,] <- row
+#   }
+# }
+# df <- data.frame(Term=character(), Language=character(), Backlinks=integer(), Interlinks=integer())
+# 
+# for (t in terms){
+#   for (l in lang){
+# 
+#     all_bls <- page_backlinks(language = l,"wikipedia", page = t, clean_response = TRUE, limit = 1000)
+#     all_pls <- page_links(language = l,"wikipedia", page = t, clean_response = TRUE, limit = 1000)
+#     row <- c(t, l, length(all_bls), (length(unlist(all_pls))-3)/2)
+#     df[nrow(df) + 1,] <- row
+#   }
+# }
+# df$Backlinks <- as.numeric(df$Backlinks)
+# df$Interlinks <- as.numeric(df$Interlinks)
+# 
+# tib <- df %>%
+#         group_by(Language)%>%
+#         summarise(avg_bl = mean(Backlinks, na.rm = TRUE), avg_il = mean(Interlinks, na.rm = TRUE))
+# tib
+# 
+# p1 <- ggplot(tib) +
+#   geom_bar(aes(x=Language,y=avg_bl),
+#            stat = "identity", position = "stack") +
+#   labs(
+#     title = "Average backlinks per language",
+#     caption = "WikipediR api"
+#   )+
+#   xlab("Language")+
+#   ylab("AVG backlinks")
+# p1
+# 
+# p2 <- ggplot(tib) +
+#         geom_bar(aes(x=Language,y=avg_il),
+#                  stat = "identity", position = "stack") +
+#         labs(
+#                 title = "Average interlinks per language",
+#                 caption = "WikipediR api"
+#         )+
+#         xlab("Language")+
+#         ylab("AVG interlinks")
+# p2
 ```
-
-```{r}
-df <- data.frame(Term=character(), Language=character(), Backlinks=integer(), Interlinks=integer())
-
-for (t in terms){
-  for (l in lang){
-
-    all_bls <- page_backlinks(language = l,"wikipedia", page = t, clean_response = TRUE, limit = 1000)
-    all_pls <- page_links(language = l,"wikipedia", page = t, clean_response = TRUE, limit = 1000)
-    row <- c(t, l, length(all_bls), (length(unlist(all_pls))-3)/2)
-    df[nrow(df) + 1,] <- row
-  }
-}
-```
-
-```{r}
-df$Backlinks <- as.numeric(df$Backlinks)
-df$Interlinks <- as.numeric(df$Interlinks)
-
-tib <- df %>%
-        group_by(Language)%>%
-        summarise(avg_bl = mean(Backlinks, na.rm = TRUE), avg_il = mean(Interlinks, na.rm = TRUE))
-tib
-
-p1 <- ggplot(tib) +
-  geom_bar(aes(x=Language,y=avg_bl),
-           stat = "identity", position = "stack") +
-  labs(
-    title = "Average backlinks per language",
-    caption = "WikipediR api"
-  )+
-  xlab("Language")+
-  ylab("AVG backlinks")
-p1
-
-p2 <- ggplot(tib) +
-        geom_bar(aes(x=Language,y=avg_il),
-                 stat = "identity", position = "stack") +
-        labs(
-                title = "Average interlinks per language",
-                caption = "WikipediR api"
-        )+
-        xlab("Language")+
-        ylab("AVG interlinks")
-p2
-```
-
 
 ```{r}
 glimpse(wiki_contents_df)
@@ -642,7 +631,6 @@ glimpse(wiki_contents_df)
 ```{r}
 names <- c(5)
 wiki_contents_df[,names] <- lapply(wiki_contents_df[,names] , factor)
-glimpse(wiki_contents_df)
 ```
 
 ```{r}
@@ -677,26 +665,14 @@ model_lm <- linear_reg() %>%
     set_engine("lm") %>%
         fit(page_score ~ . - results - time - lang - video_count - num_references , data = train)
 tidy(model_lm)
-glance(model_lm)$r.squared
+training_res = train$page_score - predict(model_lm,train)
+holdout_res = test$page_score - predict(model_lm,test)
 pred <- predict(model_lm, test)
 pred
 
 # while an R-square as low as 10% is generally accepted for studies in the field of arts, humanities and social sciences because human behavior cannot be accurately predicted, therefore, a low R-square is often not a problem in studies in the arts, humanities and social science field. However, that should not be an excuse for not improving the R-square value if it can be improved
 
 ```
-```{r}
-glance(model_lm)$r.squared
-```
-
-```{r}
-test
-```
-
-```{r}
-model_glm = glm(lang ~ . - results - time - lang - video_count - num_references , family="binomial", data = train)
-summary(model_glm)
-```
-
 
 ```{r}
 sse = 0
@@ -704,6 +680,38 @@ for (i in 1:36){
   sse = sse + (test$page_score[i]-pred$.pred[i])^2
 }
 mse <- sse/36
+glance(model_lm)$r.squared
 sse
 mse
+```
+
+
+```{r}
+t.test(pred,mu=0)
+t.test(training_res,mu=0)
+t.test(training_res,holdout_res)
+# var.test(training_res,holdout_res)
+# ks.test(training_res,holdout_res)
+
+```
+
+```{r}
+test
+train
+```
+
+```{r}
+model_glm = glm(lang ~ . - results - time - lang - video_count - num_references , family="binomial", data = train)
+summary(model_glm)
+
+```
+```{r}
+test_prob = predict(model_glm, newdata = test, type = "response")
+test_prob
+test_roc = multiclass.roc(test$lang ~ test_prob, plot = TRUE, print.auc = TRUE)
+as.numeric(test_roc$auc)
+```
+
+```{r}
+as.numeric(test_roc$auc)
 ```
