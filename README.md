@@ -17,5 +17,5 @@ Maps - Maps to places related to the search term.
 Images - Top images of the search term
 See results about - A section that gives few reasonable search questions to further expand the knowledge about the topic.
 
-Note that not all search terms have all of these elements, because of maby reasons - one of them serves the base to our research question - does searching in different languages produce different information exploration experiences.
+Note that not all search terms have all of these elements, because of many reasons - one of them serves the base to our research question - does searching in different languages produce different information exploration experiences.
 
